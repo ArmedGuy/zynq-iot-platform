@@ -1,6 +1,6 @@
 # Setup
-title:        Project or Site name
-tagline:      A responsive theme for your project on GitHub Pages
+title:        Zynq IoT Platform
+tagline:      Cloud-based IoT platform for Xlinx Zync-based devices
 baseurl:      "/zynq-iot-platform"
 paginate:     1
 locale:       "en"
