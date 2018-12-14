@@ -1,0 +1,43 @@
+.about-panel {
+  background-color: #fff;
+  padding-bottom: 30%;
+	outline: 2px dashed #92b0b3; /* Todo might not need? */
+	outline-offset: -10px;
+  color: #000;
+  margin-left: 1px;
+  box-shadow: 0 5px 5px 1px rgba(0,0,0,0.5);
+}
+
+.about-content {
+  padding: 40px;
+}
+
+.about-content > p {
+  color: #0f3c4bcc;
+  font-size: 14px;
+  font-weight: bold;
+  width: 40%;
+}
+
+.about-header {
+  color: #0f3c4bcc;
+  text-transform: uppercase;
+}
+
+#ltu-logo {
+  padding: 30px;
+  float: right;
+  position: absolute;
+  top: 30px;
+  right: 30px;
+}
+
+.group-members {
+  color: #0f3c4bcc;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.group-members > li {
+  margin: 20px 0;
+}
