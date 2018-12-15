@@ -121,3 +121,25 @@
 .box__error {
 	display: none;
 }
+
+.device-stats {
+  color: #333;
+  margin-top: 60px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.device-stats.online {
+  color: #11cc11cc;
+  font-size: 40px;
+}
+
+.device-stats.offline {
+  color: #cc1111cc;
+  font-size: 40px;
+}
+
+.stats-row {
+  padding: 15px;
+}

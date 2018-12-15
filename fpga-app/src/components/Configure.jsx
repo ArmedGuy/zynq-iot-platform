@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Grid, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import Dropzone from 'react-dropzone';
 import {Doughnut,Line} from 'react-chartjs-2';
+import './Dashboard.css';
 import './Configure.css';
 
 export default class Configure extends Component {
@@ -12,7 +13,9 @@ export default class Configure extends Component {
     this.state = {
       key: 0,
       devices: [],
-      doughnut: doughnutData()
+      stats: [],
+      stdout: "",
+      stderr: ""
     };
   }
 
@@ -26,11 +29,19 @@ export default class Configure extends Component {
     .then(response => response.json())
     .then(data => this.setState({ devices: data }))
 
+    fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
+      method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => this.setState({ stats: data }))
+
     setInterval(() => {
-      this.setState(state => ({
-        doughnut: doughnutData()
-      }));
-    }, 5000);
+      fetch('http://localhost:8080/api/getOutput/'+this.props.match.params.id, {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(data => this.setState({ stdout: data.stdout, stderr: data.stderr }))
+    }, 2000);
   }
 
   onDrop(files) {
@@ -40,7 +51,7 @@ export default class Configure extends Component {
       formData.append('file', file)
     })
     //formData.append('file', files[0])
-    fetch('http://localhost:8080/api/configure/'+key, {
+    fetch('http://localhost:8080/api/configure/'+this.props.match.params.id, {
       method: 'POST',
       body: formData
     })
@@ -58,35 +69,80 @@ export default class Configure extends Component {
             <Col md={12}>
               <Tabs activeKey={this.state.key} onSelect={this.handleSelect}>
                 <Tab eventKey={0} title="Stats" className="tab-content-stats">
-                  <Row>
-                    <Col xs={12} sm={12} md={6}>
-                      <div className="col-container">
+                  <Row className="stats-row" style={{"padding-bottom": "0px"}}>
+                    <Col xs={12} sm={12} md={3}>
+                      <div className="col-container container-small">
                         <div>
-                          <h2 className="dashboard-header">FPGA1 Historical Data</h2>
-                          <Line data={data} />
+                          <h2 className="dashboard-header">Device Status</h2>
+                          <p className={"device-stats "+ this.state.devices.status}>{this.state.devices.status}</p>
                         </div>
                       </div>
                     </Col>
-                    <Col xs={12} sm={12} md={6}>
-                      <div className="col-container">
+                    <Col xs={12} sm={12} md={3}>
+                      <div className="col-container container-small">
                         <div>
-                          <h2 className="dashboard-header">FPGA2 Historical Data</h2>
-                          <Line data={data} />
+                          <h2 className="dashboard-header">Device Model</h2>
+                          <p className="device-stats">{this.state.devices.model}</p>
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={12} sm={12} md={3}>
+                      <div className="col-container container-small">
+                        <div>
+                          <h2 className="dashboard-header"># of CPUs</h2>
+                          <p className="device-stats">{this.state.devices.cpu}</p>
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={12} sm={12} md={3}>
+                      <div className="col-container container-small">
+                        <div>
+                          <h2 className="dashboard-header"># of RAM</h2>
+                          <p className="device-stats">{this.state.devices.ram} Mb</p>
                         </div>
                       </div>
                     </Col>
                   </Row>
-                    <Col xs={12} sm={12} md={3}>
-                      <div className="col-container container-small">
+                  <Row className="stats-row" style={{"padding-top": "0px", "padding-bottom": "0px"}}>
+                    <Col xs={12} sm={12} md={6}>
+                      <div className="col-container">
                         <div>
-                          <h2 className="dashboard-header">Doughnut Example</h2>
-                          <Doughnut data={this.state.doughnut} />
+                          <h2 className="dashboard-header">CPU/RAM Historical Data</h2>
+                          <Line data={resourceData} options={resourceOptions} />
                         </div>
                       </div>
                     </Col>
-                  {this.state.devices.id + " " + this.state.devices.status + " " + this.state.devices.model + " " + this.state.devices.cpu + " " + this.state.devices.ram}
+                    <Col xs={12} sm={12} md={6}>
+                      <div className="col-container">
+                        <div>
+                          <h2 className="dashboard-header">Network Up/Down Historical Data</h2>
+                          <Line data={netData} options={netOptions} />
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
                 </Tab>
-                <Tab eventKey={1} title="Flash" className="tab-content-dropzone">
+                <Tab eventKey={1} title="Output" className="tab-content-stats">
+                  <Row className="stats-row">
+                    <Col xs={12} sm={12} md={6}>
+                      <div className="col-container">
+                        <div>
+                          <h2 className="dashboard-header">STDOut Output</h2>
+                          <pre>{this.state.stdout}</pre>
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={12} sm={12} md={6}>
+                      <div className="col-container">
+                        <div>
+                          <h2 className="dashboard-header">STDErr Output</h2>
+                          <pre>{this.state.stderr}</pre>
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                </Tab>
+                <Tab eventKey={2} title="Flash" className="tab-content-dropzone">
                   <Dropzone className="dropzone" onDrop={this.onDrop.bind(this)}>
                     <h1>Here you can upload runnable files straight to the device!</h1>
                     <i class="fas fa-cloud-upload-alt"></i>
@@ -102,28 +158,7 @@ export default class Configure extends Component {
   }
 }
 
-const doughnutData = () => ({
-  labels: [
-    'Red',
-    'Blue',
-    'Yellow'
-  ],
-  datasets: [{
-    data: [getRandomInt(50, 200), getRandomInt(100, 150), getRandomInt(150, 250)],
-    backgroundColor: [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56'
-    ],
-    hoverBackgroundColor: [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56'
-    ]
-  }]
-});
-
-const data = {
+const resourceData = {
   labels: ['-30', '-25', '-20', '-15', '-10', '-5', 'Now'],
   datasets: [
     {
@@ -171,6 +206,88 @@ const data = {
   ]
 };
 
-function getRandomInt (min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+const netData = {
+  labels: ['-30', '-25', '-20', '-15', '-10', '-5', 'Now'],
+  datasets: [
+    {
+      label: 'Up',
+      fill: false,
+      lineTension: 0.1,
+      backgroundColor: 'rgba(255, 99, 132, 0.4)',
+      borderColor: 'rgba(255, 99, 132, 1)',
+      borderCapStyle: 'butt',
+      borderDash: [],
+      borderDashOffset: 0.0,
+      borderJoinStyle: 'miter',
+      pointBorderColor: 'rgba(255, 99, 132, 1)',
+      pointBackgroundColor: '#fff',
+      pointBorderWidth: 1,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: 'rgba(255, 99, 132, 1)',
+      pointHoverBorderColor: 'rgba(220,220,220,1)',
+      pointHoverBorderWidth: 2,
+      pointRadius: 1,
+      pointHitRadius: 10,
+      data: [5, 20, 35, 50, 65, 80, 95]
+    },
+    {
+      label: 'Down',
+      fill: false,
+      lineTension: 0.1,
+      backgroundColor: 'rgba(99, 249, 112, 0.4)',
+      borderColor: 'rgba(99, 249, 112, 1)',
+      borderCapStyle: 'butt',
+      borderDash: [],
+      borderDashOffset: 0.0,
+      borderJoinStyle: 'miter',
+      pointBorderColor: 'rgba(99, 249, 112, 1)',
+      pointBackgroundColor: '#fff',
+      pointBorderWidth: 1,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: 'rgba(99, 249, 112, 1)',
+      pointHoverBorderColor: 'rgba(220,220,220,1)',
+      pointHoverBorderWidth: 2,
+      pointRadius: 1,
+      pointHitRadius: 10,
+      data: [95, 80, 65, 50, 35, 20, 5]
+    }
+  ]
+};
+
+const resourceOptions = {
+  scales: {
+    xAxes: [{
+      display: true,
+      scaleLabel: {
+        display: true,
+        labelString: 'Time (s)'
+      }
+    }],
+    yAxes: [{
+      display: true,
+      scaleLabel: {
+        display: true,
+        labelString: 'Usage (%)'
+      }
+    }]
+  }
+};
+
+const netOptions = {
+  scales: {
+    xAxes: [{
+      display: true,
+      scaleLabel: {
+        display: true,
+        labelString: 'Time (s)'
+      }
+    }],
+    yAxes: [{
+      display: true,
+      scaleLabel: {
+        display: true,
+        labelString: 'Speed (Mb/s)'
+      }
+    }]
+  }
+};

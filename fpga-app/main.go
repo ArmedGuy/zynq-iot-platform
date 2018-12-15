@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,16 +10,10 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const FPGA_ALL = "0"
-const FPGA_1 = "1"
-const FPGA_2 = "2"
-
-var FPGA1_Filename string
-var FPGA2_Filename string
-
 type File struct {
+	Id   bson.ObjectId `bson:"device_id"`
 	Name string
-	Data *multipart.FileHeader
+	File []byte
 }
 
 type Device struct {
@@ -29,6 +22,20 @@ type Device struct {
 	CPU    int           `json:"cpu"`
 	RAM    int           `json:"ram"`
 	Model  string        `json:"model"`
+}
+
+type Stats struct {
+	Id           bson.ObjectId `bson:"device_id" json:"device"`
+	CPU          int           `json:"cpu"`
+	RAM          int           `json:"ram"`
+	Network_up   int           `json:"netup"`
+	Network_down int           `json:"netdown"`
+}
+
+type Output struct {
+	Id     bson.ObjectId `bson:"device_id" json:"device"`
+	Stdout string        `json:"stdout"`
+	Stder  string        `json:"stderr"`
 }
 
 func main() {
@@ -79,75 +86,91 @@ func main() {
 		c.JSON(http.StatusOK, result)
 	})
 
-	r.POST("/api/configure/:fpga", func(c *gin.Context) {
+	r.GET("/api/getStats/:id", func(c *gin.Context) {
 		setCorsHeaders(c)
+
+		s := session.Clone()
+		defer s.Close()
+
+		id := c.Param("id")
+
+		var result []Stats
+		q := session.DB("iot_platform").C("stats")
+		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
+
+		//Cut off at 10 with slices?
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c.JSON(http.StatusOK, result)
+	})
+
+	r.GET("/api/getOutput/:id", func(c *gin.Context) {
+		setCorsHeaders(c)
+
+		s := session.Clone()
+		defer s.Close()
+
+		id := c.Param("id")
+
+		var result []Output
+		q := session.DB("iot_platform").C("output")
+		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c.JSON(http.StatusOK, result)
+	})
+
+	r.POST("/api/configure/:id", func(c *gin.Context) {
+		setCorsHeaders(c)
+
+		s := session.Clone()
+		defer s.Close()
 
 		form, _ := c.MultipartForm()
 		files := form.File["file"]
-		deployDest := c.Param("fpga")
+		id := c.Param("id")
+
+		q := session.DB("iot_platform").C("files")
 
 		for _, file := range files {
-			switch deployDest {
-			case FPGA_ALL:
-				c.SaveUploadedFile(file, "./configFPGA1/"+file.Filename)
-				FPGA1_Filename = file.Filename
-				c.SaveUploadedFile(file, "./configFPGA2/"+file.Filename)
-				FPGA2_Filename = file.Filename
-				d := session.DB("test").C("files")
-				err = d.Insert(&File{file.Filename, file})
-				if err != nil {
-					log.Fatal(err)
-				}
+			fileContent, _ := file.Open()
+			bytes, _ := ioutil.ReadAll(fileContent)
 
-				result := File{}
-				err = d.Find(bson.M{"name": file.Filename}).One(&result)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				fmt.Println("Filename:", result.Name)
-			case FPGA_1:
-				c.SaveUploadedFile(file, "./configFPGA1/"+file.Filename)
-				FPGA1_Filename = file.Filename
-			case FPGA_2:
-				c.SaveUploadedFile(file, "./configFPGA2/"+file.Filename)
-				FPGA2_Filename = file.Filename
+			err = q.Insert(&File{bson.ObjectIdHex(id), file.Filename, bytes})
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
-
-		//For single file only (in case we only want to take 1 zip file?)
-		/*file, _ := c.FormFile("file")
-		deployDest := c.Param("fpga")
-		fmt.Printf(deployDest)
-		switch deployDest {
-		case FPGA_ALL:
-			c.SaveUploadedFile(file, "./configFPGA1/"+file.Filename)
-			FPGA1_Filename = file.Filename
-			c.SaveUploadedFile(file, "./configFPGA2/"+file.Filename)
-			FPGA2_Filename = file.Filename
-		case FPGA_1:
-			c.SaveUploadedFile(file, "./configFPGA1/"+file.Filename)
-			FPGA1_Filename = file.Filename
-		case FPGA_2:
-			c.SaveUploadedFile(file, "./configFPGA2/"+file.Filename)
-			FPGA2_Filename = file.Filename
-		}*/
-		/*c.JSON(http.StatusOK, gin.H{
-			"response": "Request received.",
-		})*/
 	})
 
-	r.GET("/api/current", func(c *gin.Context) {
+	r.GET("/api/getConfiguration/:id", func(c *gin.Context) {
 		setCorsHeaders(c)
 
-		c.JSON(http.StatusOK, gin.H{
-			"response": struct {
-				FPGA1 string
-				FPGA2 string
-			}{
-				FPGA1: FPGA1_Filename,
-				FPGA2: FPGA2_Filename,
-			}})
+		s := session.Clone()
+		defer s.Close()
+
+		id := c.Param("id")
+
+		var result File
+		q := session.DB("iot_platform").C("files")
+		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Transfer-Encoding", "binary")
+		c.Header("Content-Disposition", "attachment; filename="+result.Name)
+		c.Header("Content-Type", "application/octet-stream")
+		c.Data(http.StatusOK, "application/octet-stream", result.File)
+		/*if err != nil {
+			log.Fatal(err)
+		}*/
+
+		//c.JSON(http.StatusOK, result)
 	})
 
 	r.Run(":8080")
