@@ -165,11 +165,6 @@ func main() {
 		c.Header("Content-Disposition", "attachment; filename="+result.Name)
 		c.Header("Content-Type", "application/octet-stream")
 		c.Data(http.StatusOK, "application/octet-stream", result.File)
-		/*if err != nil {
-			log.Fatal(err)
-		}*/
-
-		//c.JSON(http.StatusOK, result)
 	})
 
 	r.Run(":8080")

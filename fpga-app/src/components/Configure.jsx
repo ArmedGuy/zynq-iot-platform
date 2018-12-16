@@ -12,7 +12,6 @@ export default class Configure extends Component {
     this.state = {
       devices: [],
       stats: [],
-      historical: [],
       stdout: "",
       stderr: ""
     };
@@ -28,12 +27,6 @@ export default class Configure extends Component {
     })
     .then(response => response.json())
     .then(data => this.setState({ devices: data }))
-
-    /*fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
-      method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data => this.setState({ stats: data }))*/
 
     this.pollingDevice = setInterval(() => {
       fetch('http://localhost:8080/api/getDevice/'+this.props.match.params.id, {
@@ -176,7 +169,6 @@ export default class Configure extends Component {
     files.forEach(file => {
       formData.append('file', file)
     })
-    //formData.append('file', files[0])
     fetch('http://localhost:8080/api/configure/'+this.props.match.params.id, {
       method: 'POST',
       body: formData
