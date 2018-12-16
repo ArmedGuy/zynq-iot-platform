@@ -1,19 +1,18 @@
 import React, { Component } from 'react';
 import { Grid, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import Dropzone from 'react-dropzone';
-import {Doughnut,Line} from 'react-chartjs-2';
+import {Line} from 'react-chartjs-2';
 import './Dashboard.css';
 import './Configure.css';
 
 export default class Configure extends Component {
   constructor() {
     super()
-    this.handleSelect = this.handleSelect.bind(this);
 
     this.state = {
-      key: 0,
       devices: [],
       stats: [],
+      historical: [],
       stdout: "",
       stderr: ""
     };
@@ -22,6 +21,7 @@ export default class Configure extends Component {
   componentDidMount() {
     document.title = "Configure - FPGA WebApp";
     window.scrollTo(0,0)
+    var time = Date.now()
 
     fetch('http://localhost:8080/api/getDevice/'+this.props.match.params.id, {
       method: 'GET'
@@ -29,23 +29,149 @@ export default class Configure extends Component {
     .then(response => response.json())
     .then(data => this.setState({ devices: data }))
 
-    fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
+    /*fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
       method: 'GET'
     })
     .then(response => response.json())
-    .then(data => this.setState({ stats: data }))
+    .then(data => this.setState({ stats: data }))*/
 
-    setInterval(() => {
+    this.pollingDevice = setInterval(() => {
+      fetch('http://localhost:8080/api/getDevice/'+this.props.match.params.id, {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(data => this.setState({ devices: data }))
+    }, 5000);
+    
+    this.pollingStats = setInterval(() => {
+      fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(data => updateStats.bind(this)(data))
+    }, 2000);
+
+    this.pollingOutput = setInterval(() => {
       fetch('http://localhost:8080/api/getOutput/'+this.props.match.params.id, {
         method: 'GET'
       })
       .then(response => response.json())
       .then(data => this.setState({ stdout: data.stdout, stderr: data.stderr }))
     }, 2000);
+
+    function updateStats(data) {
+      var arr = this.state.stats
+      let current = Math.floor((Date.now() - time)/1000).toString()
+      arr.push([current, data.cpu, data.ram, data.net_up, data.net_down])
+      arr = arr.slice(-7)
+      console.log(arr)
+      this.setState({ stats: arr })
+    }
   }
 
+  componentWillUnmount() {
+    clearInterval(this.pollingDevice)
+    clearInterval(this.pollingStats)
+    clearInterval(this.pollingOutput)
+  }
+
+  resourceData = () => ({
+    labels: this.state.stats.map(x => x[0]),
+    datasets: [
+      {
+        label: 'CPU',
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: 'rgba(255, 206, 86, 0.4)',
+        borderColor: 'rgba(255, 206, 86, 1)',
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: 'rgba(255, 206, 86, 1)',
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgba(255, 206, 86, 1)',
+        pointHoverBorderColor: 'rgba(220,220,220,1)',
+        pointHoverBorderWidth: 2,
+        pointRadius: 1,
+        pointHitRadius: 10,
+        data: this.state.stats.map(x => x[1])
+      },
+      {
+        label: 'Memory',
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: 'rgba(54, 162, 235, 0.4)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: 'rgba(54, 162, 235, 1)',
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgba(54, 162, 235, 1)',
+        pointHoverBorderColor: 'rgba(220,220,220,1)',
+        pointHoverBorderWidth: 2,
+        pointRadius: 1,
+        pointHitRadius: 10,
+        data: this.state.stats.map(x => x[2])
+      }
+    ]
+  });
+
+  netData = () => ({
+    labels: this.state.stats.map(x => x[0]),
+    datasets: [
+      {
+        label: 'Up',
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: 'rgba(255, 99, 132, 0.4)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: 'rgba(255, 99, 132, 1)',
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgba(255, 99, 132, 1)',
+        pointHoverBorderColor: 'rgba(220,220,220,1)',
+        pointHoverBorderWidth: 2,
+        pointRadius: 1,
+        pointHitRadius: 10,
+        data: this.state.stats.map(x => x[3])
+      },
+      {
+        label: 'Down',
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: 'rgba(99, 249, 112, 0.4)',
+        borderColor: 'rgba(99, 249, 112, 1)',
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: 'rgba(99, 249, 112, 1)',
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgba(99, 249, 112, 1)',
+        pointHoverBorderColor: 'rgba(220,220,220,1)',
+        pointHoverBorderWidth: 2,
+        pointRadius: 1,
+        pointHitRadius: 10,
+        data: this.state.stats.map(x => x[4])
+      }
+    ]
+  });
+
   onDrop(files) {
-    var key = this.state.key
     var formData = new FormData()
     files.forEach(file => {
       formData.append('file', file)
@@ -57,17 +183,13 @@ export default class Configure extends Component {
     })
   }
 
-  handleSelect(key) {
-    this.setState({ key });
-  }
-
   render () {
     return (
       <div className="content">
         <Grid className="content-container">
           <Row>
             <Col md={12}>
-              <Tabs activeKey={this.state.key} onSelect={this.handleSelect}>
+              <Tabs>
                 <Tab eventKey={0} title="Stats" className="tab-content-stats">
                   <Row className="stats-row" style={{"padding-bottom": "0px"}}>
                     <Col xs={12} sm={12} md={3}>
@@ -108,7 +230,7 @@ export default class Configure extends Component {
                       <div className="col-container">
                         <div>
                           <h2 className="dashboard-header">CPU/RAM Historical Data</h2>
-                          <Line data={resourceData} options={resourceOptions} />
+                          <Line data={this.resourceData} options={resourceOptions} />
                         </div>
                       </div>
                     </Col>
@@ -116,7 +238,7 @@ export default class Configure extends Component {
                       <div className="col-container">
                         <div>
                           <h2 className="dashboard-header">Network Up/Down Historical Data</h2>
-                          <Line data={netData} options={netOptions} />
+                          <Line data={this.netData} options={netOptions} />
                         </div>
                       </div>
                     </Col>
@@ -157,102 +279,6 @@ export default class Configure extends Component {
     )
   }
 }
-
-const resourceData = {
-  labels: ['-30', '-25', '-20', '-15', '-10', '-5', 'Now'],
-  datasets: [
-    {
-      label: 'CPU',
-      fill: false,
-      lineTension: 0.1,
-      backgroundColor: 'rgba(255, 206, 86, 0.4)',
-      borderColor: 'rgba(255, 206, 86, 1)',
-      borderCapStyle: 'butt',
-      borderDash: [],
-      borderDashOffset: 0.0,
-      borderJoinStyle: 'miter',
-      pointBorderColor: 'rgba(255, 206, 86, 1)',
-      pointBackgroundColor: '#fff',
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: 'rgba(255, 206, 86, 1)',
-      pointHoverBorderColor: 'rgba(220,220,220,1)',
-      pointHoverBorderWidth: 2,
-      pointRadius: 1,
-      pointHitRadius: 10,
-      data: [65, 59, 80, 81, 56, 55, 0]
-    },
-    {
-      label: 'Memory',
-      fill: false,
-      lineTension: 0.1,
-      backgroundColor: 'rgba(54, 162, 235, 0.4)',
-      borderColor: 'rgba(54, 162, 235, 1)',
-      borderCapStyle: 'butt',
-      borderDash: [],
-      borderDashOffset: 0.0,
-      borderJoinStyle: 'miter',
-      pointBorderColor: 'rgba(54, 162, 235, 1)',
-      pointBackgroundColor: '#fff',
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: 'rgba(54, 162, 235, 1)',
-      pointHoverBorderColor: 'rgba(220,220,220,1)',
-      pointHoverBorderWidth: 2,
-      pointRadius: 1,
-      pointHitRadius: 10,
-      data: [35, 95, 30, 85, 20, 75, 90]
-    }
-  ]
-};
-
-const netData = {
-  labels: ['-30', '-25', '-20', '-15', '-10', '-5', 'Now'],
-  datasets: [
-    {
-      label: 'Up',
-      fill: false,
-      lineTension: 0.1,
-      backgroundColor: 'rgba(255, 99, 132, 0.4)',
-      borderColor: 'rgba(255, 99, 132, 1)',
-      borderCapStyle: 'butt',
-      borderDash: [],
-      borderDashOffset: 0.0,
-      borderJoinStyle: 'miter',
-      pointBorderColor: 'rgba(255, 99, 132, 1)',
-      pointBackgroundColor: '#fff',
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: 'rgba(255, 99, 132, 1)',
-      pointHoverBorderColor: 'rgba(220,220,220,1)',
-      pointHoverBorderWidth: 2,
-      pointRadius: 1,
-      pointHitRadius: 10,
-      data: [5, 20, 35, 50, 65, 80, 95]
-    },
-    {
-      label: 'Down',
-      fill: false,
-      lineTension: 0.1,
-      backgroundColor: 'rgba(99, 249, 112, 0.4)',
-      borderColor: 'rgba(99, 249, 112, 1)',
-      borderCapStyle: 'butt',
-      borderDash: [],
-      borderDashOffset: 0.0,
-      borderJoinStyle: 'miter',
-      pointBorderColor: 'rgba(99, 249, 112, 1)',
-      pointBackgroundColor: '#fff',
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: 'rgba(99, 249, 112, 1)',
-      pointHoverBorderColor: 'rgba(220,220,220,1)',
-      pointHoverBorderWidth: 2,
-      pointRadius: 1,
-      pointHitRadius: 10,
-      data: [95, 80, 65, 50, 35, 20, 5]
-    }
-  ]
-};
 
 const resourceOptions = {
   scales: {

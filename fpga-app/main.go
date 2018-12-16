@@ -25,11 +25,11 @@ type Device struct {
 }
 
 type Stats struct {
-	Id           bson.ObjectId `bson:"device_id" json:"device"`
-	CPU          int           `json:"cpu"`
-	RAM          int           `json:"ram"`
-	Network_up   int           `json:"netup"`
-	Network_down int           `json:"netdown"`
+	Id       bson.ObjectId `bson:"device_id" json:"device"`
+	CPU      int           `json:"cpu"`
+	RAM      int           `json:"ram"`
+	Net_up   int           `json:"net_up"`
+	Net_down int           `json:"net_down"`
 }
 
 type Output struct {
@@ -61,7 +61,7 @@ func main() {
 		err = q.Find(bson.M{}).All(&result)
 
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(http.StatusOK, Device{})
 		}
 
 		c.JSON(http.StatusOK, result)
@@ -80,7 +80,7 @@ func main() {
 		err = q.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
 
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(http.StatusOK, Device{})
 		}
 
 		c.JSON(http.StatusOK, result)
@@ -94,14 +94,12 @@ func main() {
 
 		id := c.Param("id")
 
-		var result []Stats
+		var result Stats
 		q := session.DB("iot_platform").C("stats")
-		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
-
-		//Cut off at 10 with slices?
+		err = q.Find(bson.M{"device_id": id}).One(&result)
 
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(http.StatusOK, Stats{})
 		}
 
 		c.JSON(http.StatusOK, result)
@@ -115,12 +113,12 @@ func main() {
 
 		id := c.Param("id")
 
-		var result []Output
+		var result Output
 		q := session.DB("iot_platform").C("output")
-		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
+		err = q.Find(bson.M{"device_id": id}).One(&result)
 
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(http.StatusOK, Output{})
 		}
 
 		c.JSON(http.StatusOK, result)
@@ -142,7 +140,8 @@ func main() {
 			fileContent, _ := file.Open()
 			bytes, _ := ioutil.ReadAll(fileContent)
 
-			err = q.Insert(&File{bson.ObjectIdHex(id), file.Filename, bytes})
+			_, err = q.Upsert(bson.M{"device_id": bson.ObjectIdHex(id)}, &File{bson.ObjectIdHex(id), file.Filename, bytes})
+			err = session.DB("iot_platform").C("devices").Update(bson.M{"_id": bson.ObjectIdHex(id)}, bson.M{"$set": bson.M{"status": "flash_queued"}})
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -159,7 +158,7 @@ func main() {
 
 		var result File
 		q := session.DB("iot_platform").C("files")
-		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).All(&result)
+		err = q.Find(bson.M{"device_id": bson.ObjectIdHex(id)}).One(&result)
 
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Transfer-Encoding", "binary")
