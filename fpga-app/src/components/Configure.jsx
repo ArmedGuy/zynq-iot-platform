@@ -8,8 +8,10 @@ import './Configure.css';
 export default class Configure extends Component {
   constructor() {
     super()
+    this.handleSelect = this.handleSelect.bind(this);
 
     this.state = {
+      key: 0,
       devices: [],
       stats: [],
       stdout: "",
@@ -20,6 +22,7 @@ export default class Configure extends Component {
   componentDidMount() {
     document.title = "Configure - FPGA WebApp";
     window.scrollTo(0,0)
+
     var time = Date.now()
 
     fetch('http://130.240.200.99:8080/api/getDevice/'+this.props.match.params.id, {
@@ -68,6 +71,9 @@ export default class Configure extends Component {
     clearInterval(this.pollingOutput)
   }
 
+  handleSelect(key) {
+    this.setState({ key });
+  }
   resourceData = () => ({
     labels: this.state.stats.map(x => x[0]),
     datasets: [
@@ -165,6 +171,7 @@ export default class Configure extends Component {
   });
 
   onDrop(files) {
+    this.setState({ key: 0 })
     var formData = new FormData()
     files.forEach(file => {
       formData.append('file', file)
@@ -181,7 +188,7 @@ export default class Configure extends Component {
         <Grid className="content-container">
           <Row>
             <Col md={12}>
-              <Tabs>
+              <Tabs activeKey={this.state.key} onSelect={this.handleSelect}>
                 <Tab eventKey={0} title="Stats" className="tab-content-stats">
                   <Row className="stats-row" style={{"padding-bottom": "0px"}}>
                     <Col xs={12} sm={12} md={3}>
