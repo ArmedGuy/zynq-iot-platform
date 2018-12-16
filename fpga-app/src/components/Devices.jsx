@@ -14,7 +14,7 @@ export default class Devices extends Component {
     document.title = "Devices - FPGA WebApp";
     window.scrollTo(0,0)
 
-    fetch('http://localhost:8080/api/getDevices', {
+    fetch('http://130.240.200.99:8080/api/getDevices', {
       method: 'GET'
     })
     .then(response => response.json())

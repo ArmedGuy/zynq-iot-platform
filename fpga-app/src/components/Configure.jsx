@@ -22,14 +22,14 @@ export default class Configure extends Component {
     window.scrollTo(0,0)
     var time = Date.now()
 
-    fetch('http://localhost:8080/api/getDevice/'+this.props.match.params.id, {
+    fetch('http://130.240.200.99:8080/api/getDevice/'+this.props.match.params.id, {
       method: 'GET'
     })
     .then(response => response.json())
     .then(data => this.setState({ devices: data }))
 
     this.pollingDevice = setInterval(() => {
-      fetch('http://localhost:8080/api/getDevice/'+this.props.match.params.id, {
+      fetch('http://130.240.200.99:8080/api/getDevice/'+this.props.match.params.id, {
         method: 'GET'
       })
       .then(response => response.json())
@@ -37,7 +37,7 @@ export default class Configure extends Component {
     }, 5000);
     
     this.pollingStats = setInterval(() => {
-      fetch('http://localhost:8080/api/getStats/'+this.props.match.params.id, {
+      fetch('http://130.240.200.99:8080/api/getStats/'+this.props.match.params.id, {
         method: 'GET'
       })
       .then(response => response.json())
@@ -45,7 +45,7 @@ export default class Configure extends Component {
     }, 2000);
 
     this.pollingOutput = setInterval(() => {
-      fetch('http://localhost:8080/api/getOutput/'+this.props.match.params.id, {
+      fetch('http://130.240.200.99:8080/api/getOutput/'+this.props.match.params.id, {
         method: 'GET'
       })
       .then(response => response.json())
@@ -169,7 +169,7 @@ export default class Configure extends Component {
     files.forEach(file => {
       formData.append('file', file)
     })
-    fetch('http://localhost:8080/api/configure/'+this.props.match.params.id, {
+    fetch('http://130.240.200.99:8080/api/configure/'+this.props.match.params.id, {
       method: 'POST',
       body: formData
     })

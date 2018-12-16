@@ -26,7 +26,7 @@ export default class Dashboard extends Component {
     document.title = "Dashboard - FPGA WebApp";
     window.scrollTo(0,0)
     
-    fetch('http://localhost:8080/api/current', {
+    fetch('http://130.240.200.99:8080/api/current', {
       method: 'GET'
     })
     .then(response => response.json())
