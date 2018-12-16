@@ -1,0 +1,11 @@
+.table-bordered {
+  border: 2px solid #666 !important;
+}
+
+table {
+  color: #666;
+}
+
+th {
+  border-bottom: 1px solid #666 !important;
+}
