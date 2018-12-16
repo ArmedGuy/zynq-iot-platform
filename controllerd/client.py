@@ -7,33 +7,43 @@ import json
 ws = None
 
 async def send_stuff():
+    global ws
+    await asyncio.sleep(10)
     while True:
-        await websocket.send(json.dumps({
+        print("Sending stuff")
+        await ws.send(json.dumps({
             "rpc": "stats",
             "stats": {
                 "cpu": 30,
-                "ram": 200
+                "ram": 12,
+                "net_up": 2,
+                "net_down": 16
             }
         }))
-        await websocket.send(json.dumps({
+        await ws.send(json.dumps({
             "rpc": "output",
             "output": {
                 "stdout": "KASDJASDJASD",
                 "stderr": ""
             }
         }))
-        asyncio.sleep(30)
+        await ws.send(json.dumps({
+            "rpc": "status",
+            "status": "online"
+        }))
+        await asyncio.sleep(30)
 
 async def controller(uri):
+    global ws
     async with websockets.connect(uri) as websocket:
         print("connected, sending!")
         ws = websocket
         await websocket.send(json.dumps({
             "rpc": "register",
             "data": {
-                "id": None,
+                "id": "5c1661657f7d235160689d23",
                 "model": "Zynq 700 Swag",
-                "cpu": 2,
+                "cpu": 8,
                 "ram": 2048,
                 "status": "online"
             }
@@ -47,6 +57,7 @@ async def controller(uri):
 
 asyncio.get_event_loop().run_until_complete(
     asyncio.gather(
-        controller('ws://localhost:8765'),
+        controller('ws://localhost:5000'),
         send_stuff()
     )
+)
