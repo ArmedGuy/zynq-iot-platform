@@ -59,6 +59,7 @@ async def handle(websocket, path):
             pass
 
 try:
+    print("starting server!")
     asyncio.get_event_loop().run_until_complete(
         asyncio.gather(
             websockets.serve(handle, '0.0.0.0', 5000), 
