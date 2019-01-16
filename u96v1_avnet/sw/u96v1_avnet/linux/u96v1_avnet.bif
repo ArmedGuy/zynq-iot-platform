@@ -1,0 +1,5 @@
+/*u96v1_avnet*/
+all:
+{
+  [destination_device=pl] <bitstream>
+}
