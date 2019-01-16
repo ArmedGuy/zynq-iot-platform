@@ -31,3 +31,11 @@ Two binares are included in the binaries folder.
 `system.dtb` is a device tree for Avnet:s Ultra96 development board with the xlnk device added.
 
 Together they enable an Avnet Ultra96 board to run Xilinx SDSoC applications compiled for the platform as a Linux application (not standalone).
+
+The easiest way to test is to use the provided flash card when buying an Avnet Ultra96 devboard, and switch out the Image and system.dtb on the flash card.
+
+## Building applications for Avnet Ultra96
+Provided in the repository is a modifiled Xilinx SDx Platform that allows one to build Linux based applications in Xilinx SDx.
+The original platform provided by Avnet is only configured for standalone applications (meaning the applications manages memory and threading, not a Linux kernel).
+
+Follow regular instructions for adding Avnet Ultra96 support in Xilinx SDx (and Vivado), but use this platform in the step for adding platforms.
